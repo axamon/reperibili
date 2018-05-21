@@ -1,4 +1,4 @@
-package main
+package reperibili
 
 import (
 	"bufio"
@@ -31,7 +31,7 @@ type Assegnazione struct {
 var t = time.Now()
 
 //limite delle 7 fino alle 7 del mattino seguente il reperibile che viene visualizzato è quello del giorno prima
-var limite7 = time.Date(t.Year(), t.Month(), t.Day(), 7, 0, 0, 0, t.Location())
+var limite7 = time.Date(t.Year(), t.Month(), t.Day(), 15, 41, 0, 0, t.Location())
 
 var ieri = time.Now().Add(-24 * time.Hour).Format("20060102")
 var oggi = time.Now().Format("20060102")
@@ -40,8 +40,64 @@ var domani = time.Now().Add(24 * time.Hour).Format("20060102")
 var filecsv = flag.String("f", "reperibilita.csv", "Percorso del file csv per la reperibilità")
 var piattaforma = flag.String("p", "CDN", "La piattaforma di cui desideri ricavare il reperibile")
 
+var contatti []Reperibile
+
 //salva in contatti tutte le informazioni disponibili ora
-var contatti = caricareperibili()
+//var contatti = caricareperibili()
+
+//Reperibiliperpiattaforma2 ti da le info
+func Reperibiliperpiattaforma2(piatta, file string) (contatto Reperibile, err error) {
+	var limite7 = time.Date(t.Year(), t.Month(), t.Day(), 16, 50, 0, 0, t.Location())
+
+	csvFile, err := os.Open(file)
+	if err != nil {
+		fmt.Println("errore", err.Error())
+	}
+	defer csvFile.Close()
+	reader := csv.NewReader(bufio.NewReader(csvFile))
+	var contatti []Reperibile
+	for {
+		line, error := reader.Read()
+		if error == io.EOF {
+			break
+		} else if error != nil {
+			log.Fatal(error)
+		}
+		contatti = append(contatti, Reperibile{
+
+			Nome:      line[3],
+			Cognome:   line[4],
+			Cellulare: line[5],
+			Assegnazione: Assegnazione{
+				Giorno:      line[0],
+				Piattaforma: line[1],
+				Gruppo:      line[2],
+			},
+		})
+	}
+	//var reperibili []Reperibile
+	for _, contatto := range contatti {
+		if contatto.Assegnazione.Piattaforma != "CDN" {
+			if t.Before(limite7) && contatto.Assegnazione.Piattaforma == piatta {
+				//Non sono ancora le 7 di mattina quindi bisogna chiamare il reperibile di ieri
+				if contatto.Assegnazione.Giorno == ieri && contatto.Assegnazione.Piattaforma == piatta {
+					return contatto, nil
+				}
+			} else if contatto.Assegnazione.Giorno == oggi && contatto.Assegnazione.Piattaforma == piatta {
+				return contatto, nil
+				//reperibili = append(reperibili, contatto)
+				//fmt.Println(contatto.Assegnazione.Piattaforma, contatto.Cognome, contatto.Cellulare)
+			}
+		}
+		if contatto.Assegnazione.Giorno == oggi && contatto.Assegnazione.Piattaforma == "CDN" {
+			return contatto, nil
+			//fmt.Println(contatto.Assegnazione.Piattaforma, contatto.Cognome, contatto.Cellulare)
+
+		}
+	}
+
+	return contatto, fmt.Errorf("%s", "Nessun reperibile trovato")
+}
 
 func main() {
 	flag.Parse()
@@ -105,8 +161,12 @@ func Inseriscireperibile(GIORNO, PIATTAFORMA, GRUPPO, NOME, COGNOME, CELLULARE s
 
 //Reperibiliperpiattaforma restituisce il reperibile attuale per la piattaforma passata come parametro
 func Reperibiliperpiattaforma(piattaforma string) (contatto Reperibile, err error) {
+	flag.Parse()
 
-	for _, reperibile := range mostrareperibili() {
+	Caricareperibili()
+	Mostrareperibili()
+
+	for _, reperibile := range Mostrareperibili() {
 		if reperibile.Assegnazione.Piattaforma == piattaforma {
 			contatto := reperibile
 			return contatto, nil
@@ -116,8 +176,9 @@ func Reperibiliperpiattaforma(piattaforma string) (contatto Reperibile, err erro
 	return contatto, fmt.Errorf("%s", "Nessun reperibile trovato")
 }
 
-func mostrareperibili() (reperibili []Reperibile) {
-
+//Mostrareperibili mostra i reperibili
+func Mostrareperibili() (reperibili []Reperibile) {
+	Caricareperibili()
 	//TODO per ogni piattaforma mostra il reperibile attuale
 	for _, contatto := range contatti {
 
@@ -146,7 +207,8 @@ func mostrareperibili() (reperibili []Reperibile) {
 	return reperibili
 }
 
-func caricareperibili() (contatti []Reperibile) {
+//Caricareperibili carica i reperibili in contatti
+func Caricareperibili() (contatti []Reperibile) {
 	csvFile, _ := os.Open(*filecsv)
 	defer csvFile.Close()
 	reader := csv.NewReader(bufio.NewReader(csvFile))
