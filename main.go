@@ -31,7 +31,7 @@ type Assegnazione struct {
 var t = time.Now()
 
 //limite delle 7 fino alle 7 del mattino seguente il reperibile che viene visualizzato è quello del giorno prima
-var limite7 = time.Date(t.Year(), t.Month(), t.Day(), 15, 41, 0, 0, t.Location())
+var limite7 = time.Date(t.Year(), t.Month(), t.Day(), 7, 0, 0, 0, t.Location())
 
 var ieri = time.Now().Add(-24 * time.Hour).Format("20060102")
 var oggi = time.Now().Format("20060102")
@@ -47,7 +47,7 @@ var contatti []Reperibile
 
 //Reperibiliperpiattaforma2 ti da le info
 func Reperibiliperpiattaforma2(piatta, file string) (contatto Reperibile, err error) {
-	var limite7 = time.Date(t.Year(), t.Month(), t.Day(), 16, 50, 0, 0, t.Location())
+	var limite7 = time.Date(t.Year(), t.Month(), t.Day(), 7, 0, 0, 0, t.Location())
 
 	csvFile, err := os.Open(file)
 	if err != nil {
@@ -76,30 +76,37 @@ func Reperibiliperpiattaforma2(piatta, file string) (contatto Reperibile, err er
 		})
 	}
 	//var reperibili []Reperibile
-	for _, contatto := range contatti {
-		if contatto.Assegnazione.Piattaforma != "CDN" {
-			if t.Before(limite7) && contatto.Assegnazione.Piattaforma == piatta {
+
+	switch piatta {
+	case "CDN", "TIC":
+		for _, contatto := range contatti {
+			if contatto.Assegnazione.Giorno == oggi && contatto.Assegnazione.Piattaforma == piatta {
+				return contatto, nil
+			}
+		}
+
+	default:
+		for _, contatto := range contatti {
+			if t.Before(limite7) {
 				//Non sono ancora le 7 di mattina quindi bisogna chiamare il reperibile di ieri
 				if contatto.Assegnazione.Giorno == ieri && contatto.Assegnazione.Piattaforma == piatta {
 					return contatto, nil
 				}
-			} else if contatto.Assegnazione.Giorno == oggi && contatto.Assegnazione.Piattaforma == piatta {
-				return contatto, nil
-				//reperibili = append(reperibili, contatto)
-				//fmt.Println(contatto.Assegnazione.Piattaforma, contatto.Cognome, contatto.Cellulare)
 			}
-		}
-		if contatto.Assegnazione.Giorno == oggi && contatto.Assegnazione.Piattaforma == "CDN" {
-			return contatto, nil
-			//fmt.Println(contatto.Assegnazione.Piattaforma, contatto.Cognome, contatto.Cellulare)
+			if t.After(limite7) {
+				if contatto.Assegnazione.Giorno == oggi && contatto.Assegnazione.Piattaforma == piatta {
+					return contatto, nil
+				}
+			}
 
 		}
+
 	}
-
 	return contatto, fmt.Errorf("%s", "Nessun reperibile trovato")
 }
 
 func main() {
+
 	flag.Parse()
 
 	rep, err := Reperibiliperpiattaforma(*piattaforma)
@@ -108,11 +115,6 @@ func main() {
 	}
 
 	fmt.Println(rep.Cellulare)
-
-	ok := Inseriscireperibile("20180515", "PS", "GRUPPO2", "Monica", "Cognome", "+395434520")
-	if ok == true {
-		fmt.Println("ok")
-	}
 
 }
 
@@ -133,11 +135,11 @@ func Inseriscireperibile(GIORNO, PIATTAFORMA, GRUPPO, NOME, COGNOME, CELLULARE s
 	}
 	oggiint, _ := strconv.Atoi(oggi)
 	if GIORNOINT < oggiint {
-		log.Fatal("vabbè mo mettemo le repribilità nel passato")
+		log.Fatal("vabbè mo mettemo le reperibilità nel passato")
 	}
 
 	if Verificacellulare(CELLULARE) == false {
-		log.Fatal("numero di cellulare non supportato")
+		log.Fatal("numero di cellulare non supportato, deve essere del tipo +39xxxxxxxxxx")
 	}
 
 	value := []string{GIORNO, PIATTAFORMA, GRUPPO, NOME, COGNOME, CELLULARE}
