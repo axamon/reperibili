@@ -263,7 +263,7 @@ func recuperavariabile(variabile string) (result string, err error) {
 
 } */
 
-func Call(TO string) (sid string) {
+func call(TO string) (sid string) {
 
 	twilionumber, err := recuperavariabile("TWILIONUMBER")
 	if err != nil {
@@ -346,7 +346,6 @@ func Chiamareperibile(TO, NOME, COGNOME string) (sid string, err error) {
 	twilionumber, err := recuperavariabile("TWILIONUMBER")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(100)
 	}
 	// Let's set some initial default variables
 
@@ -354,14 +353,12 @@ func Chiamareperibile(TO, NOME, COGNOME string) (sid string, err error) {
 	accountSid, err := recuperavariabile("TWILIOACCOUNTSID")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(101)
 	}
 
 	//Recupera il token supersegreto dalla variabile d'ambiente
 	authToken, err := recuperavariabile("TWILIOAUTHTOKEN")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(102)
 	}
 
 	urlStr := "https://api.twilio.com/2010-04-01/Accounts/" + accountSid + "/Calls.json"
@@ -402,6 +399,13 @@ func Chiamareperibile(TO, NOME, COGNOME string) (sid string, err error) {
 		}
 	}
 	//fmt.Println(data) //debug
-	sid = data["sid"].(string)
-	return sid, nil
+
+	//se la mappa contiene un valore usalo se
+	if val, ok := data["sid"]; ok {
+		sid = val.(string)
+		return sid, nil
+	}
+
+	return "", fmt.Errorf("Sid non presente")
+
 }
