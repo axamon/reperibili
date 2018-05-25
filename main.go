@@ -16,8 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/gorilla/mux"
 )
 
 //Reperibile è la variabile con i dati personali dei reperibili
@@ -112,7 +110,7 @@ func Reperibiliperpiattaforma2(piatta, file string) (contatto Reperibile, err er
 	return contatto, fmt.Errorf("%s", "Nessun reperibile trovato")
 }
 
-func main() {
+/* func main() {
 
 	flag.Parse()
 
@@ -123,7 +121,7 @@ func main() {
 
 	fmt.Println(rep.Cellulare)
 
-}
+} */
 
 //Verificacellulare risponde ok se il numero inzia con +3 e si compone di 10 cifre
 func Verificacellulare(CELLULARE string) (ok bool) {
@@ -265,7 +263,7 @@ func recuperavariabile(variabile string) (result string, err error) {
 
 } */
 
-func call(w http.ResponseWriter, r *http.Request) {
+func Call(TO string) (sid string) {
 
 	twilionumber, err := recuperavariabile("TWILIONUMBER")
 	if err != nil {
@@ -289,49 +287,61 @@ func call(w http.ResponseWriter, r *http.Request) {
 	}
 
 	urlStr := "https://api.twilio.com/2010-04-01/Accounts/" + accountSid + "/Calls.json"
-	vars := mux.Vars(r)
 	// Build out the data for our message
 	v := url.Values{}
 	//v.Set("status_callback", "http://sauron1.westeurope.cloudapp.azure.com:3000/status")
 	//v.Set("status_callback_event", "initiated")
-	v.Set("status_callback_method", "POST")
-	v.Set("To", vars["TO"])
-	v.Set("NOME", "Gringo")
+	v.Set("To", TO)
+	NOME := "Gringo"
+	COGNOME := "Gallo"
+	//v.Set("NOME", "Gringo")	v.S	v.Set("From", twilionumber)
+	v.Set("From", twilionumber)
+
+	//v.Set("COGNOME", "Gaggio")
 	v.Set("From", twilionumber)
 	//Sfortunatamente la URL deve essere Pubblica se no twilio non può arrivarci
-	v.Set("Url", "https://handler.twilio.com/twiml/EH5cef42aa1454fc2326780c8f08c6d568")
+	v.Set("Url", "https://handler.twilio.com/twiml/EH5cef42aa1454fc2326780c8f08c6d568?NOME="+NOME+"&COGNOME="+COGNOME)
 	rb := *strings.NewReader(v.Encode())
 
 	// Create Client
 	client := &http.Client{}
 
 	//Prepara la richiesta HTTP
-	req, _ := http.NewRequest("POST", urlStr, &rb)
+	req, err := http.NewRequest("POST", urlStr, &rb)
+	if err != nil {
+		fmt.Fprintln(os.Stdout, "OH noooo! Qualcosa è andata storta nel creare la richiesta", err)
+	}
+
+	//Utiliziamo l'autenticazione basic
 	req.SetBasicAuth(accountSid, authToken)
+	//Inseriamo un po' di headers come piacciono a Twilio
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	// make request
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("errore", err.Error())
-		os.Exit(500)
+		fmt.Fprintln(os.Stdout, "OH noooo! Qualcosa è andata storta nell'inviare la richiesta", err.Error())
 	}
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		var data map[string]interface{}
 		bodyBytes, _ := ioutil.ReadAll(resp.Body)
 		err := json.Unmarshal(bodyBytes, &data)
 		if err == nil {
-			fmt.Println(data["sid"])
 
-			fmt.Println(data)
+			//fmt.Println(data) //debug
+			//	fmt.Println(data["sid"]) //debug
+			sid := data["sid"].(string)
+			return sid
+
 		}
 
 	}
+	return
 }
 
 //Chiamareperibile e comunica il problema
-func Chiamareperibile(TO, NOME string) (sid interface{}, err error) {
+func Chiamareperibile(TO, NOME, COGNOME string) (sid string, err error) {
 
 	twilionumber, err := recuperavariabile("TWILIONUMBER")
 	if err != nil {
@@ -354,17 +364,27 @@ func Chiamareperibile(TO, NOME string) (sid interface{}, err error) {
 		os.Exit(102)
 	}
 
-	body := strings.NewReader("Url=https://handler.twilio.com/twiml/EH5cef42aa1454fc2326780c8f08c6d568?NOME=" + NOME + "&To=" + TO + "&From=" + twilionumber)
-	req, err := http.NewRequest("POST", "https://api.twilio.com/2010-04-01/Accounts/"+accountSid+"/Calls", body)
+	urlStr := "https://api.twilio.com/2010-04-01/Accounts/" + accountSid + "/Calls.json"
+
+	v := url.Values{}
+	v.Set("To", TO)
+	v.Set("From", twilionumber)
+	v.Set("Url", "https://handler.twilio.com/twiml/EH5cef42aa1454fc2326780c8f08c6d568?NOME="+NOME+"&COGNOME="+COGNOME)
+	rb := *strings.NewReader(v.Encode())
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("POST", urlStr, &rb)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stdout, "OH noooo! Qualcosa è andata storta nel creare la richiesta", err)
 	}
 	req.SetBasicAuth(accountSid, authToken)
+	req.Header.Add("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stdout, "OH noooo! Qualcosa è andata storta nell'inviare la richiesta", err.Error())
 	}
 	defer resp.Body.Close()
 	// make request
@@ -381,7 +401,7 @@ func Chiamareperibile(TO, NOME string) (sid interface{}, err error) {
 			return "", err
 		}
 	}
-	fmt.Println(data)
-	sid = data["sid"]
+	//fmt.Println(data) //debug
+	sid = data["sid"].(string)
 	return sid, nil
 }
