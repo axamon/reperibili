@@ -406,6 +406,6 @@ func Chiamareperibile(TO, NOME, COGNOME string) (sid string, err error) {
 		return sid, nil
 	}
 
-	return "", fmt.Errorf("Sid non presente")
+	return "", fmt.Errorf("Sid non presente, problemi di auteticazione forse")
 
 }
