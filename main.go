@@ -220,11 +220,10 @@ func Chiamareperibile(TO, NOME, COGNOME string) (sid string, err error) {
 
 		bodyBytes, errb := ioutil.ReadAll(resp.Body)
 		if errb != nil {
-			fmt.Println(errb)
+			fmt.Fprintln(os.Stdout, errb.Error())
 		}
 		err := json.Unmarshal(bodyBytes, &data)
 		if err != nil {
-			//fmt.Println("ok")
 			return "", err
 		}
 	}
