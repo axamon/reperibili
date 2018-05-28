@@ -175,7 +175,7 @@ func recuperavariabilecifrata(variabile, passwd string) (result string, err erro
 }
 
 //Chiamareperibile2 comunica il problema e recupera i dati di Twilio criptati
-func Chiamareperibile2(TO, NOME, COGNOME, TWILIONUMBER, TWILIOACCOUNTSID, TWILIOAUTHTOKEN string) (sid string, err error) {
+func Chiamareperibile2(TO, NOME, COGNOME string) (sid string, err error) {
 
 	twilionumber, err := recuperavariabile("TWILIONUMBER")
 	if err != nil {
