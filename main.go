@@ -20,6 +20,10 @@ import (
 	"github.com/axamon/cripta"
 )
 
+const (
+	pwd = "Timetomarket"
+)
+
 //Reperibile è la variabile con i dati personali dei reperibili
 type Reperibile struct {
 	Nome         string
@@ -168,6 +172,75 @@ func recuperavariabilecifrata(variabile, passwd string) (result string, err erro
 		return result, nil
 	}
 	return "", fmt.Errorf("la variabile %s non esiste o è vuota", variabile)
+}
+
+//Chiamareperibile2 comunica il problema e recupera i dati di Twilio criptati
+func Chiamareperibile2(TO, NOME, COGNOME, TWILIONUMBER, TWILIOACCOUNTSID, TWILIOAUTHTOKEN string) (sid string, err error) {
+
+	twilionumber, err := recuperavariabile("TWILIONUMBER")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+	}
+	// Let's set some initial default variables
+
+	//Recupera l'accountsid di Twilio dallla variabile d'ambiente
+	accountSid, err := recuperavariabilecifrata("TWILIOACCOUNTSID", pwd)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+	}
+
+	//Recupera il token supersegreto dalla variabile d'ambiente
+	authToken, err := recuperavariabilecifrata("TWILIOAUTHTOKEN", pwd)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+	}
+
+	urlStr := "https://api.twilio.com/2010-04-01/Accounts/" + accountSid + "/Calls.json"
+
+	v := url.Values{}
+	v.Set("To", TO)
+	v.Set("From", twilionumber)
+	v.Set("Url", "https://handler.twilio.com/twiml/EH5cef42aa1454fc2326780c8f08c6d568?NOME="+NOME+"&COGNOME="+COGNOME)
+	rb := *strings.NewReader(v.Encode())
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("POST", urlStr, &rb)
+	if err != nil {
+		fmt.Fprintln(os.Stdout, "OH noooo! Qualcosa è andata storta nel creare la richiesta", err)
+	}
+	req.SetBasicAuth(accountSid, authToken)
+	req.Header.Add("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Fprintln(os.Stdout, "OH noooo! Qualcosa è andata storta nell'inviare la richiesta", err.Error())
+	}
+	defer resp.Body.Close()
+	// make request
+	var data map[string]interface{}
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+
+		bodyBytes, errb := ioutil.ReadAll(resp.Body)
+		if errb != nil {
+			fmt.Fprintln(os.Stdout, errb.Error())
+		}
+		err := json.Unmarshal(bodyBytes, &data)
+		if err != nil {
+			return "", err
+		}
+	}
+	//fmt.Println(data) //debug
+
+	//se la mappa contiene un valore usalo se
+	if val, ok := data["sid"]; ok {
+		sid = val.(string)
+		return sid, nil
+	}
+
+	return "", fmt.Errorf("Sid non presente, problemi di auteticazione forse")
+
 }
 
 //Chiamareperibile e comunica il problema
