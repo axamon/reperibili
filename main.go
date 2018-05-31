@@ -243,7 +243,7 @@ func Chiamareperibile2(TO, NOME, COGNOME string) (sid string, err error) {
 
 }
 
-//Chiamareperibile e comunica il problema
+//Chiamareperibile comunica il problema
 func Chiamareperibile(TO, NOME, COGNOME string) (sid string, err error) {
 
 	twilionumber, err := recuperavariabile("TWILIONUMBER")
