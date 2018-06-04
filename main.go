@@ -125,7 +125,7 @@ func Reperibiliperpiattaforma2(piatta, file string) (contatto Reperibile, err er
 	return contatto, fmt.Errorf("%s", "Nessun reperibile trovato")
 }
 
-//Verificacellulare risponde ok se il numero inzia con +3 e si compone di 10 cifre
+//Verificacellulare risponde ok se il numero inzia con +39 e si compone di 10 cifre
 func Verificacellulare(CELLULARE string) (ok bool) {
 
 	re := regexp.MustCompile(`^\+39[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$`)
