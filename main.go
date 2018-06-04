@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/csv"
 	"encoding/json"
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"io"
@@ -324,4 +325,49 @@ func Chiamareperibile(TO, NOME, COGNOME string) (sid string, err error) {
 	//Se nella risposta non c'è indicazione del sid ritorna un errore
 	return "", fmt.Errorf("Sid non presente, problemi di auteticazione forse")
 
+}
+
+//Retrievestatus trova lo status di una call
+func Retrievestatus(sid string) (status string) {
+
+	accountSid, err := recuperavariabile("TWILIOACCOUNTSID")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(101)
+	}
+
+	url := "https://api.twilio.com/2010-04-01/Accounts/" + accountSid + "/Calls/" + sid
+
+	req, _ := http.NewRequest("GET", url, nil)
+
+	req.Header.Add("Authorization", "Basic QUM2MTU1NWQ2NDYyODE2NjAxMWM4YzU3NzZhM2JlOTU3ZTo1NDliNGRjOTQ5NmQ3MDg1YTA1M2FkZjQwNzBhOWFkYQ==")
+	req.Header.Add("Cache-Control", "no-cache")
+	req.Header.Add("Postman-Token", "decb8b3e-3689-4de0-bba9-d84c74fd0bf7")
+
+	res, errres := http.DefaultClient.Do(req)
+	if errres != nil {
+		log.Fatal(errres)
+	}
+
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+
+	//fmt.Println(res)
+	//fmt.Println(string(body))
+
+	//Creo tipo per estrarre singolo valore da file XML
+	type TwilioResponse struct {
+		Status string `xml:"Call>Status"`
+	}
+
+	v := TwilioResponse{}
+	errstat := xml.Unmarshal(body, &v)
+	if errstat != nil {
+		fmt.Printf("error: %v", err)
+		return
+	}
+
+	//fmt.Printf("Status: %s\n", v.Status)
+
+	return v.Status
 }
